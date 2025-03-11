@@ -92,6 +92,7 @@ const DropdownUser = () => {
             width={960}
             height={600}
             sizes="100vw"
+            className="rounded-full"
           />
         </span>
 
