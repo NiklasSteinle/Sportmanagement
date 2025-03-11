@@ -1,0 +1,222 @@
+"use client";
+import { useState, useEffect } from "react";
+import { db } from "../../../../firebaseconfig";
+import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import DefaultLayout from "@/components/Layouts/DefaultLayout";
+
+const AdminPage = () => {
+  const [helpers, setHelpers] = useState<any[]>([]); // Store helper data
+  const [stations, setStations] = useState<{ id: string; sport: string }[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [assignments, setAssignments] = useState<any>({});
+  const [assignedHelpers, setAssignedHelpers] = useState<
+    { helper: string; station: string }[]
+  >([]);
+
+  // Fetch helpers and stations/classes from Firestore
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch helpers
+        const helpersSnapshot = await getDocs(collection(db, "users"));
+        const helpersData: any[] = [];
+        const assignedHelpers: any[] = [];
+        helpersSnapshot.forEach((doc) => {
+          if (doc.data().helperRoles != undefined) {
+            if (
+              doc.data().assignedTo == undefined ||
+              doc.data().assignedTo == ""
+            ) {
+              const docData = doc.data();
+              helpersData.push({ id: doc.id, ...docData });
+            } else {
+              const docData = doc.data();
+              assignedHelpers[docData.assignedTo] = docData.name;
+            }
+          }
+        });
+        setHelpers(helpersData);
+        setAssignedHelpers(assignedHelpers);
+        console.log(assignedHelpers);
+        // Fetch stations
+        const stationsSnapshot = await getDocs(collection(db, "stations"));
+        const stationsData = stationsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          sport: doc.data().sport, // Access the 'sport' field from the document
+        }));
+        setStations(stationsData);
+
+        // Fetch classes (if stored in Firestore)
+        const classesResponse = await fetch("/api/listCollections");
+        const classesData = await classesResponse.json();
+        console.log("Classes data:", classesData.collections);
+        setClasses(classesData.collections);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Handle drop event
+  const handleDrop = async (result: any) => {
+    const { destination, source } = result;
+    if (!destination) return;
+
+    const sourceArea = source.droppableId;
+    const destArea = destination.droppableId;
+
+    // Get the helper being dragged
+    const helper = helpers[source.index];
+    if (!helper) return;
+
+    // Prevent moving a helper from one area to another if they're already assigned
+    if (helper.assignedTo) {
+      // If the helper is already assigned to a station or class, prevent reassigning
+      return;
+    }
+
+    // Update assignments
+    const newAssignments = { ...assignments };
+
+    // Initialize the source and destination areas if they don't exist
+    newAssignments[sourceArea] = newAssignments[sourceArea] || [];
+    newAssignments[destArea] = newAssignments[destArea] || [];
+
+    // Remove the helper from the source area (if already assigned there)
+    newAssignments[sourceArea] = newAssignments[sourceArea].filter(
+      (h: any) => h.id !== helper.id,
+    );
+
+    // Add the helper to the destination area (station or class)
+    newAssignments[destArea] = [...newAssignments[destArea], helper];
+
+    // Set the helper's assigned station or class in the helper object
+    const updatedHelper = {
+      ...helper,
+      assignedStation: destArea.includes("Station") ? destArea : "",
+      assignedClass: destArea.includes("Class") ? destArea : "",
+    };
+
+    // Update the assignments state
+    setAssignments(newAssignments);
+
+    // Update Firestore with the helper's new assignment
+    try {
+      await setDoc(
+        doc(db, "users", helper.id),
+        {
+          assignedTo: destArea,
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      console.error("Error updating assignment:", error);
+    }
+  };
+
+  return (
+    <DefaultLayout>
+      <div className="container mx-auto flex flex-col items-center bg-gray-100 p-6">
+        <h1 className="mb-6 text-2xl font-bold text-gray-800">
+          Helfer Zuweisung
+        </h1>
+        <DragDropContext onDragEnd={handleDrop}>
+          <div className="flex space-x-6">
+            {/* Helper Cards */}
+            <Droppable droppableId="helpers" direction="vertical">
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex w-64 flex-col items-center space-y-4"
+                >
+                  {helpers.length > 0 ? (
+                    helpers.map((helper, index) => (
+                      <Draggable
+                        key={helper.id}
+                        draggableId={helper.id}
+                        index={index}
+                      >
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="rounded-lg bg-blue-100 p-4 shadow-md"
+                          >
+                            <h3 className="text-lg font-semibold">
+                              {helper.name || "No Name"}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {helper.email || "No Email"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Rollen:{" "}
+                              {helper.helperRoles?.station ? "Station" : ""}{" "}
+                              {helper.helperRoles?.class ? "Klasse" : ""}
+                            </p>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No helpers available.</p>
+                  )}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+
+            {/* Station/Class Cards */}
+            <div className="space-y-6">
+              {[...stations, ...classes].map((area) => (
+                <Droppable
+                  key={typeof area === "string" ? area : area.id}
+                  droppableId={typeof area === "string" ? area : area.id}
+                  direction="vertical"
+                >
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`w-64 space-y-4 rounded-lg p-4 shadow-lg ${
+                        typeof area !== "string" && stations.includes(area)
+                          ? "bg-blue-200"
+                          : "bg-green-200"
+                      }`}
+                    >
+                      <h2 className="text-xl font-semibold">
+                        {typeof area === "string" ? area : area.sport}
+                      </h2>
+                      {assignments[typeof area === "string" ? area : area.id]
+                        ?.length > 0 ? (
+                        assignments[
+                          typeof area === "string" ? area : area.id
+                        ].map((helper: any, index: number) => (
+                          <div
+                            key={helper.id}
+                            className="mb-2 rounded-lg bg-white p-2 shadow-md"
+                          >
+                            <p>{assignedHelpers.helper}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500">No helpers assigned.</p>
+                      )}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              ))}
+            </div>
+          </div>
+        </DragDropContext>
+      </div>
+    </DefaultLayout>
+  );
+};
+
+export default AdminPage;

@@ -1,0 +1,71 @@
+.schedule-container {
+    
+    font-family: Arial, sans-serif;
+  }
+  @media (max-width: 800px) {
+    .schedule-container {
+      grid-template-columns: 1fr;
+    }
+  
+    .schedule-entry {
+      grid-column: 1 / -1;
+      margin-top: 10px;
+    }
+    
+  }
+  
+  
+  .current-time-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: red;
+    width: 100%; 
+    z-index: 1;}
+
+  .current-time-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    z-index: 0; /* Ensure it is below the indicator */
+
+}
+  
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 100px repeat(12, 1fr); /* First column for hours, rest for events */
+    grid-auto-rows: 60px; /* Adjust the height of each hour slot */
+    
+    position: relative;
+  }
+  
+  .schedule-hour {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    position: relative;
+    z-index: 1;
+    grid-column: 1 / span 1; /* Ensure hour labels are in the first column */
+  }
+  
+  .hour-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .schedule-entry {
+    border: 1px solid #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 2;
+  }
+  
+  .entry-content {
+    color: #007bff;
+    font-weight: bold;
+  }
