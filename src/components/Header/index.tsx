@@ -58,10 +58,15 @@ const Header = (props: {
 
           <Link className="block flex-shrink-0 lg:hidden" href="/">
             <Image
+              src={
+                "https://res.cloudinary.com/dpt9i5eaj/image/upload/caddfsntbtqqgfa1c3ir" +
+                "?bust=" +
+                Math.random()
+              }
+              alt="Logo"
               width={32}
               height={32}
-              src={"/images/logo/logo-icon.png"}
-              alt="Logo"
+              priority
             />
           </Link>
         </div>

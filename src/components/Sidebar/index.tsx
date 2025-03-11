@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,10 +29,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const data = userDoc.data();
-          
-          
+
           if (data) {
-            
             return data.role;
           }
         }
@@ -44,8 +42,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   });
   useEffect(() => {
     const menuGroupsFirst = [];
-    
-    
+
     if (
       permissionsData === "Eltern" ||
       permissionsData === "Helfer" ||
@@ -218,8 +215,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             label: "Helfer Einstellungen",
             route: "/helperSettings",
           },
-          
-
         ],
       });
     }
@@ -298,7 +293,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             route: "#",
             children: [
               { label: "Schüler", route: "/Admin/students" },
-             
+
               { label: "Admins verwalten", route: "/Admin/manageAdmins" },
               { label: "Helfer", route: "/Admin/helpers" },
             ],
@@ -342,8 +337,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       });
     }
     setMenuGroups(menuGroupsFirst);
-    
-    
   }, [permissionsData]);
 
   const pathname = usePathname();
@@ -375,10 +368,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
           <Link href="/">
             <Image
+              src={
+                "https://res.cloudinary.com/dpt9i5eaj/image/upload/minnq6s3jjr7cj3mpjfx" +
+                "?bust=" +
+                Math.random()
+              }
+              alt="Logo"
               width={300}
               height={32}
-              src={"public/images/logo/logo.png"}
-              alt="Logo"
               priority
             />
           </Link>
