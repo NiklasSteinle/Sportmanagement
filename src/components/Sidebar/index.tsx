@@ -369,9 +369,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           <Link href="/">
             <Image
               src={
-                "https://res.cloudinary.com/dpt9i5eaj/image/upload/minnq6s3jjr7cj3mpjfx" +
-                "?bust=" +
-                Math.random()
+                "https://res.cloudinary.com/dpt9i5eaj/image/upload/minnq6s3jjr7cj3mpjfx"
               }
               alt="Logo"
               width={300}
