@@ -6,6 +6,7 @@ import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import Popup from "@/components/Popup/classPopup"; // Import Popup component
 import { db } from "../../../../firebaseconfig";
 import { collection, doc, setDoc } from "firebase/firestore";
+import { set } from "firebase/database";
 
 export default function ClassManagement() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -20,9 +21,25 @@ export default function ClassManagement() {
   // Klassen laden
   useEffect(() => {
     const fetchClasses = async () => {
-      const classes = await fetch("/api/getClasses").then((res) => res.json());
+      const classes = await fetch("/api/listCollections").then(async (res) => {
+        console.log(res.status);
+        if (!res.ok) {
+          throw new Error("Fehler beim Laden der Klassen");
+        } else {
+          return res.json();
+        }
+
+        
+      })
+      .then((data) => {
+        console.log(data);
+        return data.collections || [];
+      });
       setClassData(classes);
+      
     };
+    console.log("classData");
+    console.log(classData);
     fetchClasses();
   }, []);
 
