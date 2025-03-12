@@ -197,3 +197,12 @@ export default function ClassManagement() {
     </DefaultLayout>
   );
 }
+export async function getServerSideProps() {
+  const classes = await getClasses();
+  return {
+    props: {
+      classes,
+      students: [],
+    },
+  };
+}
