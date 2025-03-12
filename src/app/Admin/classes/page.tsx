@@ -4,104 +4,93 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import Popup from "@/components/Popup/classPopup"; // Import Popup component
-import { getClasses, getStudents } from "./data"; // Import data fetching functions
 import { db } from "../../../../firebaseconfig";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
-import { get } from "http";
-import { set } from "firebase/database";
+import { collection, doc, setDoc } from "firebase/firestore";
 
 export default function ClassManagement() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newClassName, setNewClassName] = useState("");
-  const [classData, setClassData] = useState<string[]>([]); // List of available classes
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [classData, setClassData] = useState<string[]>([]);
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
-  const [nameData, setNameData] = useState<string[]>([]);
 
   const router = useRouter();
 
+  // Klassen laden
   useEffect(() => {
-    // Fetch the available classes when the component mounts
     const fetchClasses = async () => {
-      const classes = await getClasses(); // Fetch classes from data.ts
+      const classes = await fetch("/api/getClasses").then((res) => res.json());
       setClassData(classes);
     };
-
     fetchClasses();
   }, []);
 
+  // Schüler laden, wenn Klasse ausgewählt wird
   useEffect(() => {
-    const getStudentNames = async () => {
-      const studentnames: string[] = [];
-      students.forEach((student) => {
-        const name = student.name;
-        studentnames.push(name);
-      });
-      console.log(studentnames);
-      setNameData(studentnames);
-    };
-    getStudentNames();
-  }, [students]);
-
-  useEffect(() => {
-    // Fetch students when a subclass is selected
     if (selectedClass) {
       const fetchStudents = async () => {
-        const studentsArray = await getStudents(selectedClass); // Fetch students from data.ts
-        setStudents(studentsArray);
+        try {
+          const response = await fetch(`/api/getStudents?class=${selectedClass}`);
+          if (!response.ok) throw new Error("Fehler beim Laden der Schüler");
+          const data = await response.json();
+          setStudents(data.students);
+        } catch (error) {
+          console.error(error);
+        }
       };
 
       fetchStudents();
     }
   }, [selectedClass]);
 
+  // Klasse auswählen
   const handleClassSelection = (className: string) => {
     setSelectedClass(className);
   };
 
-  const handleStudentRedirect = (studentId: string, selectedclass:string) => {
+  // Schüler-Seite öffnen
+  const handleStudentRedirect = (studentId: string) => {
     router.push(`/student/${selectedClass}/${studentId}`);
   };
 
+  // Modal öffnen / schließen
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
     setIsModalOpen(false);
     setNewClassName("");
   };
 
+  // Klassenname formatieren
   const formatClassName = (input: string) =>
     input.replace(/\s+/g, "").toLowerCase();
 
-  const addClass = () => {
+  // Neue Klasse hinzufügen
+  const addClass = async () => {
     if (newClassName) {
       const formattedClassName = formatClassName(newClassName);
       if (classData.includes(formattedClassName)) {
-        setPopupMessage("Diese Klasse existiert bereits."); // Set popup message
+        setPopupMessage("Diese Klasse existiert bereits.");
         return;
-      } else {
-        const docRef = doc(db, formattedClassName, "01");
-        setDoc(docRef, {});
       }
-      setClassData((prevState) => [...prevState, formattedClassName]);
-      closeModal();
+
+      try {
+        const docRef = doc(db, formattedClassName, "01");
+        await setDoc(docRef, {}); // Leeres Dokument erstellen
+        setClassData((prevState) => [...prevState, formattedClassName]);
+        closeModal();
+      } catch (error) {
+        console.error("Fehler beim Hinzufügen der Klasse:", error);
+      }
     }
   };
-
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => setAlertMessage(null), 3000); // Hide alert after 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
 
   return (
     <DefaultLayout>
       <div className="min-h-screen p-6">
         <h1 className="mb-6 text-2xl font-bold">Klassenverwaltung</h1>
 
-        {/* Class List */}
+        {/* Klassenliste */}
         <div className="mb-6">
           <h2 className="mb-4 text-xl font-semibold">Verfügbare Klassen:</h2>
           <ul className="space-y-2">
@@ -128,20 +117,20 @@ export default function ClassManagement() {
           </button>
         </div>
 
-        {/* Student List */}
+        {/* Schülerliste */}
         {selectedClass && (
           <div>
             <h2 className="mb-4 text-lg font-semibold">
               Schüler in {selectedClass}:
             </h2>
-            {students.length > 1 || nameData[0] != undefined ? (
+            {students.length > 0 ? (
               <ul className="space-y-2">
                 {students.map((student) =>
-                  student.name != undefined ? (
+                  student.name ? (
                     <li
                       key={student.id}
                       className="dark:hover:bg-primary-dark flex cursor-pointer justify-between rounded bg-gray-100 p-2 dark:bg-gray-700 dark:text-gray-100"
-                      onClick={() => handleStudentRedirect(student.id,selectedClass)}
+                      onClick={() => handleStudentRedirect(student.id)}
                     >
                       <span>
                         {student.name} {student.lastName}
@@ -150,7 +139,7 @@ export default function ClassManagement() {
                         {student.id}
                       </span>
                     </li>
-                  ) : null,
+                  ) : null
                 )}
               </ul>
             ) : (
@@ -161,7 +150,7 @@ export default function ClassManagement() {
           </div>
         )}
 
-        {/* Modal for Adding Class or Subclass */}
+        {/* Modal für neue Klasse */}
         {isModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-75">
             <div className="w-96 rounded bg-white p-6 shadow-lg dark:bg-gray-800">
@@ -189,20 +178,11 @@ export default function ClassManagement() {
           </div>
         )}
 
-        {/* Popup */}
+        {/* Popup Nachricht */}
         {popupMessage && (
           <Popup message={popupMessage} onClose={() => setPopupMessage(null)} />
         )}
       </div>
     </DefaultLayout>
   );
-}
-export async function getServerSideProps() {
-  const classes = await getClasses();
-  return {
-    props: {
-      classes,
-      students: [],
-    },
-  };
 }
